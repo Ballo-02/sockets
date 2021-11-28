@@ -31,12 +31,12 @@ def menu(cert ,key, host ,port):
             window['-OUT-'].update('Not connected', background_color='red')  # show the event and values in the window
             window.refresh()
         elif (values[1]==True):
-            interact(key ,host ,port ,data)
+            interact(cert ,host ,port)
         elif (values[2]==True):
             interact_GUI(cert , host ,port)
     # Finish up by removing from the screen
     window.close()
-def interact_GUI(key ,host ,port):
+def interact_GUI(cert ,host ,port):
     sg.theme('DarkGrey14')
 
     layout = [
@@ -66,8 +66,10 @@ def interact_GUI(key ,host ,port):
                         [sg.Open(), sg.Cancel()]]).read(close=True)[1][0]
         elif event == 'Run':
             args = values['-IN-'].split(' ')
-            print(f'Running {values["-IN-"]} args={args[0]}')
-            interact(key ,host ,port ,args[0])
+            print(f'Running {values["-IN-"]} args={args[0], *args[1:]}')
+            create_argument=(args[0], *args[1:])
+            argument=' '.join(create_argument)
+            interact(cert ,host ,port ,argument)
         elif event == 'Run No Wait':
             args = values['-IN-'].split(' ')
             print(f'Running {values["-IN-"]} args={args}', 'Results will not be shown')
@@ -92,7 +94,7 @@ def setup():
 
     return test,test2
 
-def interact(key ,host ,port ,data="id"):
+def interact(cert,host ,port ,data="id"):
 
     #Needs cert and key generated:
     #openssl req -x509 -newkey rsa:4096 -keyout key.pem -out cert.pem -sha256 -days 365
@@ -100,14 +102,18 @@ def interact(key ,host ,port ,data="id"):
 
     context = ssl.SSLContext() #Defaults to TLS 
     context.verify_mode = ssl.CERT_REQUIRED
-    context.load_verify_locations('./cert.pem')
+    context.load_verify_locations(cert)
     with socket.create_connection((host, port)) as sock:
         #Create secure socket
         ssock=context.wrap_socket(sock, server_hostname=host)
         print(ssock.version())
         print(ssock.getpeercert())
         ssock.send(data.encode())
-        recieve = ssock.recv(1024)
+        while 1:
+            recieve = ssock.recv(1024)
+            if (recieve  !=0):
+                break
+            print(f"Recieved: {recieve}")
         print(f"Recieved: {recieve}")
         ssock.shutdown(2) #Nicely close the encrypted channel
 def get_host_info(host):
@@ -121,8 +127,8 @@ if __name__=="__main__":
     host= '192.168.237.129'
     cert="./cert.pem"
     key="./key.pem"
-#    menu(cert ,key, host ,port)
-    interact(key ,host ,port)
+    menu(cert ,key, host ,port)
+#    interact(cert ,host ,port)
 #    setup_list=setup()
 #    host=setup_list[0]
 #    port=setup_list[1]

