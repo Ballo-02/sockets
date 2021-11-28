@@ -2,6 +2,7 @@ import socket
 import ssl
 import PySimpleGUI as sg
 from subprocess import run
+import sys
 
 def interact(cert ,key ,host ,port):
 
@@ -39,6 +40,7 @@ if __name__=="__main__":
     host= '192.168.237.129'
     cert="./cert.pem"
     key="./key.pem"
+
     interact(cert ,key, host ,port)
 #    setup_list=setup()
 #    host=setup_list[0]

@@ -1,13 +1,14 @@
 import socket
 import ssl
 import PySimpleGUI as sg
+import sys
 
 def menu(cert ,key, host ,port):
     # Define the window's contents
-    layout = [[sg.Text('Not connected', background_color='red',key='-OUT-')],
+    layout = [[sg.Text('Not Setup', background_color='red',key='-OUT-')],
              [sg.Checkbox('Setup', size=(100,1))],
              [sg.Checkbox('Enumeration', auto_size_text=True)],
-             [sg.Checkbox('Basic Commands', auto_size_text=True)],
+             [sg.Checkbox('Live Commands', auto_size_text=True)],
              [sg.Checkbox('Privelge Escalation', auto_size_text=True)],
 
              [sg.Button('Ok'), sg.Button('Quit')]]
@@ -25,15 +26,52 @@ def menu(cert ,key, host ,port):
             options=setup()
             host=options[0]
             port=options[1]
-            window['-OUT-'].update('connected:ip:'+str(host)+' and port:'+str(port), background_color='green')  # show the event and values in the window
+            window['-OUT-'].update('all setup:ip:'+str(host)+' and port:'+str(port), background_color='green')  # show the event and values in the window
             window.refresh()
         elif (values[0]==False and (host ==0)):
-            window['-OUT-'].update('Not connected', background_color='red')  # show the event and values in the window
+            window['-OUT-'].update('Not Setup', background_color='red')  # show the event and values in the window
             window.refresh()
         elif (values[1]==True):
-            interact(cert ,host ,port)
+            interact_built(cert ,host ,port)
         elif (values[2]==True):
             interact_GUI(cert , host ,port)
+        elif (host ==0):
+            window['-OUT-'].update('Not Setup', background_color='red')  # show the event and values in the window
+            window.refresh()
+        elif (host !=0):
+            window['-OUT-'].update('all setup:ip:'+str(host)+' and port:'+str(port), background_color='green')  # show the event and values in the window
+            window.refresh()    
+    # Finish up by removing from the screen
+    window.close()
+def interact_built(cert ,host ,port):
+    sg.theme('DarkGrey14')
+    # Define the window's contents
+    layout = [[sg.Text('Script/Commands to execute', size=(40, 1))],
+             [sg.Button('ID')],
+             [sg.Button('Processes')],
+             [sg.Button('Programs')],
+             [sg.Button('OS Type')],
+             [sg.Output(size=(88, 20), font='Courier 10')],
+
+             [sg.Button('Ok'), sg.Button('Quit')]]
+
+    # Create the window
+    window = sg.Window('Built In Commands', layout)
+
+    # Display and interact with the Window using an Event Loop
+    while True:
+        event, values = window.read()
+        # See if user wants to quit or window was closed
+        if event == sg.WINDOW_CLOSED or event == 'Quit':
+            break
+        elif (event=='ID'):
+            interact(cert, host, port, 'id')
+        elif (event=='Processes'):
+            interact(cert, host, port, 'ps aux')
+        elif (event=='Programs'):
+            interact(cert, host, port, 'dpkg -l')
+        elif (event=='OS Type'):
+            interact(cert, host, port, 'uname -a')
     # Finish up by removing from the screen
     window.close()
 def interact_GUI(cert ,host ,port):
@@ -43,7 +81,7 @@ def interact_GUI(cert ,host ,port):
         [sg.Text('Script/Commands to execute', size=(40, 1))],
         [sg.Output(size=(88, 20), font='Courier 10')],
         [sg.Button('script1'), sg.Button('script2'), sg.Button('EXIT')],
-        [sg.Text('Manual command', size=(15, 1)), sg.Input(focus=True, key='-IN-'), sg.Button('Run', bind_return_key=True), sg.Button('Run No Wait')]
+        [sg.Text('Manual command', size=(15, 1)), sg.Input(focus=True, key='-IN-'), sg.Button('Run', bind_return_key=True)]
     ]
 
     window = sg.Window('Script launcher', layout)
@@ -54,7 +92,7 @@ def interact_GUI(cert ,host ,port):
         event, values = window.read()
         if event == 'EXIT'  or event == sg.WIN_CLOSED:
             break # exit button clicked
-        if event == 'script1':
+        elif event == 'script1':
             sp = sg.Window('My Script',
                         [[sg.Text('Document to open')],
                         [sg.In(), sg.FileBrowse()],
@@ -70,10 +108,6 @@ def interact_GUI(cert ,host ,port):
             create_argument=(args[0], *args[1:])
             argument=' '.join(create_argument)
             interact(cert ,host ,port ,argument)
-        elif event == 'Run No Wait':
-            args = values['-IN-'].split(' ')
-            print(f'Running {values["-IN-"]} args={args}', 'Results will not be shown')
-            sp = sg.execute_command_subprocess(args[0], *args[1:])
 def setup():   
     sg.theme('Topanga')      # Add some color to the window
 
@@ -127,7 +161,21 @@ if __name__=="__main__":
     host= '192.168.237.129'
     cert="./cert.pem"
     key="./key.pem"
-    menu(cert ,key, host ,port)
+    if (sys.argv[1]=="h" or sys.argv[1]=="-h"):
+        print("""
+        host = -u
+        port = -p
+        command = -c
+""")
+    elif (sys.argv[1]=="-h"):
+        host=sys.argv[2]
+    elif (sys.argv[3]=="-p"):
+        port=sys.argv[4]
+    elif (sys.argv[5]=="-c"):
+        command=sys.argv[6]
+        interact(cert, host, port, command)
+    if not command:
+        menu(cert ,key, host ,port)
 #    interact(cert ,host ,port)
 #    setup_list=setup()
 #    host=setup_list[0]
