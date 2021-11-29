@@ -9,7 +9,7 @@ def menu(cert ,key, host ,port):
              [sg.Checkbox('Setup', size=(100,1))],
              [sg.Checkbox('Enumeration', auto_size_text=True)],
              [sg.Checkbox('Live Commands', auto_size_text=True)],
-             [sg.Checkbox('Privelge Escalation', auto_size_text=True)],
+             [sg.Checkbox('Relay Commands', auto_size_text=True)],
 
              [sg.Button('Ok'), sg.Button('Quit')]]
 
@@ -35,6 +35,8 @@ def menu(cert ,key, host ,port):
             interact_built(cert ,host ,port)
         elif (values[2]==True):
             interact_GUI(cert , host ,port)
+        elif (values[3]==True):
+            Relay_GUI(cert , host ,port)
         elif (host ==0):
             window['-OUT-'].update('Not Setup', background_color='red')  # show the event and values in the window
             window.refresh()
@@ -78,9 +80,9 @@ def interact_GUI(cert ,host ,port):
     sg.theme('DarkGrey14')
 
     layout = [
-        [sg.Text('Script/Commands to execute', size=(40, 1))],
+        [sg.Text('Script/Commands to execute (for relay "relay ip port command")', size=(40, 1))],
         [sg.Output(size=(88, 20), font='Courier 10')],
-        [sg.Button('script1'), sg.Button('script2'), sg.Button('EXIT')],
+        [sg.Button('Quit')],
         [sg.Text('Manual command', size=(15, 1)), sg.Input(focus=True, key='-IN-'), sg.Button('Run', bind_return_key=True)]
     ]
 
@@ -90,23 +92,40 @@ def interact_GUI(cert ,host ,port):
 
     while True:
         event, values = window.read()
-        if event == 'EXIT'  or event == sg.WIN_CLOSED:
-            break # exit button clicked
-        elif event == 'script1':
-            sp = sg.Window('My Script',
-                        [[sg.Text('Document to open')],
-                        [sg.In(), sg.FileBrowse()],
-                        [sg.Open(), sg.Cancel()]]).read(close=True)[1][0]
-        elif event == 'script2':
-            sg.Window('My Script',
-                        [[sg.Text('Document to open')],
-                        [sg.In(), sg.FileBrowse()],
-                        [sg.Open(), sg.Cancel()]]).read(close=True)[1][0]
+        if event == sg.WINDOW_CLOSED or event == 'Quit':
+            break
         elif event == 'Run':
             args = values['-IN-'].split(' ')
             print(f'Running {values["-IN-"]} args={args[0], *args[1:]}')
             create_argument=(args[0], *args[1:])
             argument=' '.join(create_argument)
+            interact(cert ,host ,port ,argument)
+def Relay_GUI(cert ,host ,port):
+    sg.theme('DarkGrey14')
+
+    layout = [
+        [sg.Text('Relay commands to be executed', size=(40, 1))],
+        [sg.Output(size=(88, 20), font='Courier 10')],
+        [sg.Text('Relay IP', size=(15, 1)), sg.InputText()],
+        [sg.Text('Relay Port', size=(15, 1)), sg.InputText()],
+        [sg.Button('Quit')],
+        [sg.Text('Manual command', size=(15, 1)), sg.Input(focus=True, key='-IN-'), sg.Button('Run', bind_return_key=True)]
+    ]
+
+    window = sg.Window('Script launcher', layout)
+
+    # ---===--- Loop taking in user input and using it to call scripts --- #
+
+    while True:
+        event, values = window.read()
+        if event == sg.WINDOW_CLOSED or event == 'Quit':
+            break
+        elif event == 'Run':
+            args = values['-IN-'].split(' ')
+            print(f'Running {values["-IN-"]} args={args[0], *args[1:]}')
+            create_argument=(args[0], *args[1:])
+            argument=' '.join(create_argument)
+            argument="relay "+str(values[0])+" "+str(values[1])+" "+str(argument)
             interact(cert ,host ,port ,argument)
 def setup():   
     sg.theme('Topanga')      # Add some color to the window
@@ -143,13 +162,17 @@ def interact(cert,host ,port ,data="id"):
         print(ssock.version())
         print(ssock.getpeercert())
         ssock.send(data.encode())
-        while 1:
-            recieve = ssock.recv(1024)
-            if (recieve  !=0):
-                break
+        command_split=data.split(" ")
+        if (command_split[0]=="relay"): #Nicely close the encrypted channel
+            print ("relayed")
+        else:
+            while 1:
+                recieve = ssock.recv(1024)
+                if (recieve  !=0):
+                    break
+                print(f"Recieved: {recieve}")
             print(f"Recieved: {recieve}")
-        print(f"Recieved: {recieve}")
-        ssock.shutdown(2) #Nicely close the encrypted channel
+            ssock.shutdown(2) #Nicely close the encrypted channel
 def get_host_info(host):
     s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
     s.connect(("8.8.8.8", 80))
@@ -161,22 +184,35 @@ if __name__=="__main__":
     host= '192.168.237.129'
     cert="./cert.pem"
     key="./key.pem"
-    if (sys.argv[1]=="h" or sys.argv[1]=="-h"):
-        print("""
-        host = -u
-        port = -p
-        command = -c
-""")
-    elif (sys.argv[1]=="-h"):
-        host=sys.argv[2]
-    elif (sys.argv[3]=="-p"):
-        port=sys.argv[4]
-    elif (sys.argv[5]=="-c"):
-        command=sys.argv[6]
-        interact(cert, host, port, command)
-    if not command:
+    print(len(sys.argv))
+    if ((len(sys.argv))>=2):
+        if (sys.argv[1]=="h"):
+            print("""
+            host = -u
+            port = -p
+            command = -c
+            example:
+            python3 client.py -u '192.1168.237.129' -p '3000' -c 'ls'
+    """)
+        elif (sys.argv[1]=="-u"):
+            host=sys.argv[2]
+            print(host)
+            if (sys.argv[3]=="-p"):
+                port=sys.argv[4]
+                print(port)
+                if (sys.argv[5]=="-c"):
+                    command=sys.argv[6]
+                    print(command)
+                    interact(cert, host, port, command)
+                else:
+                    print("forgot to add the command argument '-c'")
+            else:
+                print("forgot to add the port argument '-p'")
+        else:
+            print("""
+            host = -u
+            port = -p
+            command = -c
+    """)
+    else:
         menu(cert ,key, host ,port)
-#    interact(cert ,host ,port)
-#    setup_list=setup()
-#    host=setup_list[0]
-#    port=setup_list[1]

